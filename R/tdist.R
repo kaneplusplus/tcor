@@ -28,6 +28,9 @@
 #' number sets the maximum numer of such iterations
 #' @param columns set to \code{TRUE} to compute distances between matrix columns instead
 #' of rows, saving the expense of a matrix transpose (which can be significant if \code{A} is large)
+#' @param group either \code{NULL} for no grouping, or a vector of length 
+#' \code{ncol(A)} consisting of \code{-1, 1} values indicating group 
+#' membership of the columns.
 #' @param restart either output from a previous run of \code{tdist} with \code{dry_run=TRUE},
 #' or direct output from from \code{\link{irlba}} used to restart the \code{irlba}
 #' algorithm when tuning \code{p} (see notes)
