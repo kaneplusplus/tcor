@@ -73,7 +73,8 @@
 tdist = function(A, t, p=10,
                  filter=c("distributed", "local"),
                  method=c("euclidean", "manhattan", "maximum"), rank=FALSE,
-                 dry_run=FALSE, max_iter=4, columns=FALSE, restart, ...)
+                 dry_run=FALSE, max_iter=4, columns=FALSE, group=NULL,
+                 restart, ...)
 {
   filter = match.arg(filter)
   method = match.arg(method)
@@ -84,52 +85,81 @@ tdist = function(A, t, p=10,
            switch(method,
                   euclidean = t ^ 2,
                   maximum = nrow(A) * t ^ 2,  # XXX unlikely to be a good bound?
-                  manhattan   = t ^ 2)        # just bound by 2-norm, not so great either
+                  manhattan   = t ^ 2) # just bound by l2, not so great either
 
   t0 = proc.time()
-  if(missing(restart)) L  = irlba(A, p, ...)
-  else
-  {
-    # Handle either output from tcor(..., dry_run=TRUE), or direct output from irlba:
+  if(missing(restart)) {
+    L  = irlba(A, p, ...)
+  }
+  else {
+    # Handle either output from tcor(..., dry_run=TRUE), or direct output from 
+    # irlba:
     if("restart" %in% names(restart)) restart = restart$restart
     L = irlba(A, p, v=restart, ...)
   }
   t1 = (proc.time() - t0)[[3]]
   if(missing(t) && rank) stop("t must be specified when rank=TRUE")
   N = 1
-  if(rank) N = t
-  if(missing(t) || rank)
-  {
-    # Estimate a threshold based on a 1-d projection, with crude tuning over a range of values.
+  if(rank) {
+    N = t
+  }
+  if(missing(t) || rank) {
+    # Estimate a threshold based on a 1-d projection, with crude tuning over a 
+    # range of values.
     v = L$v[order(L$v[,1]), 1]
     ts = sort(c(quantile(L$d[1] * (v[-1] - v[1]), probs=c(0.001, 0.01, 0.1)),
-              quantile(L$d[1] * (v[length(v)] - v[-length(v)]), probs=c(0.001, 0.01, 0.1))))
+                quantile(L$d[1] * (v[length(v)] - v[-length(v)]), 
+                         probs=c(0.001, 0.01, 0.1))))
     # (that last expression considers two possible SVD bases of different sign)
-    as = lapply(ts, function(t) two_seven(A, L, t, filter, normlim=nlim(t), dry_run=TRUE)$tot)
+    as = lapply(ts, function(t) two_seven(A, L, t, filter, normlim=nlim(t), 
+                dry_run=TRUE, group=group)$tot)
     i = which(as > 0)
     if(length(i) > 0) t = ts[min(i)]
     else t = ts[3]
     attr(t, "names") = c()
-    if(rank && method == "maximum") t = t / 4    # just a fudge factor, these bounds are not great
+    if(rank && method == "maximum") t = t / 4    
+      # just a fudge factor, these bounds are not great
     if(rank && method == "manhattan") t = t * 4
   }
 
   full_dist_fun =
     switch(method,
-           euclidean = function(idx) vapply(1:nrow(idx), function(k) sqrt(crossprod(A[, idx[k,1]] - A[, idx[k, 2]])), 1),
-           manhattan = function(idx) vapply(1:nrow(idx), function(k) sum(abs(A[, idx[k,1]] - A[, idx[k, 2]])), 1),
-           maximum = function(idx) vapply(1:nrow(idx), function(k) max(abs(A[, idx[k,1]] - A[, idx[k, 2]])), 1)
+           euclidean = function(idx) {
+             vapply(1:nrow(idx), 
+                    function(k) {
+                      sqrt(crossprod(A[, idx[k,1]] - A[, idx[k, 2]]))
+                    }, 1)
+             },
+           manhattan = function(idx) {
+             vapply(1:nrow(idx), 
+                    function(k) {
+                      sum(abs(A[, idx[k,1]] - A[, idx[k, 2]]))
+                    }, 1)
+             },
+           maximum = function(idx) {
+             vapply(1:nrow(idx), 
+                    function(k) {
+                      max(abs(A[, idx[k,1]] - A[, idx[k, 2]]))
+                    }, 1)
+             }
   )
   filter_fun =  function(v, t) v <= t
 
   iter = 1
-  while(iter <= max_iter)
-  {
-    ans = two_seven(A, L, t, filter, normlim=nlim(t), full_dist_fun=full_dist_fun, filter_fun=filter_fun, dry_run=dry_run)
-    if(dry_run) return(list(restart=L, longest_run=ans$longest_run, tot=ans$tot, t=t, svd_time=t1))
-    if(!rank || (nrow(ans$indices) >= N)) break
+  while(iter <= max_iter) {
+    ans = two_seven(A, L, t, filter, normlim=nlim(t), 
+                    full_dist_fun=full_dist_fun, filter_fun=filter_fun, 
+                    dry_run=dry_run, group)
+    if(dry_run) {
+      return(list(restart=L, longest_run=ans$longest_run, tot=ans$tot, t=t, 
+                  svd_time=t1))
+    }
+    if(!rank || (nrow(ans$indices) >= N)) {
+      break
+    }
     iter = iter + 1
-# back off faster as we get closer to avoid too much filtering, at the expense of maybe more iterations
+    # back off faster as we get closer to avoid too much filtering, at the 
+    # expense of maybe more iterations
     t = t * (2 - (nrow(ans$indices)/N)^(1/4)) 
   }
   ans$indices = ans$indices[order(ans$indices[,"val"]),]
