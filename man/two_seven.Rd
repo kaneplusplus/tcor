@@ -42,4 +42,3 @@ a list with ell and tot is returned
 Steps 2--7 of Algorithm 2.1, factored into a common function that can be used by a variety of distance metrics
 }
 \keyword{internal}
-

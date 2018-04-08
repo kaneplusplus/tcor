@@ -75,7 +75,7 @@
 #' @export
 tdist = function(A, t, p=10,
                  filter=c("distributed", "local"),
-                 method=c("euclidean", "manhattan", "maximum"), rank=FALSE,
+                 method=c("euclidean", "manhattan", "maximum", "dot"), rank=FALSE,
                  dry_run=FALSE, max_iter=4, columns=FALSE, group=NULL,
                  restart, ...)
 {
@@ -88,7 +88,8 @@ tdist = function(A, t, p=10,
            switch(method,
                   euclidean = t ^ 2,
                   maximum = nrow(A) * t ^ 2,  # XXX unlikely to be a good bound?
-                  manhattan   = t ^ 2) # just bound by l2, not so great either
+                  manhattan   = t ^ 2,
+                  dot = t) # just bound by l2, not so great either
 
   t0 = proc.time()
   if(missing(restart)) {
@@ -144,7 +145,13 @@ tdist = function(A, t, p=10,
                     function(k) {
                       max(abs(A[, idx[k,1]] - A[, idx[k, 2]]))
                     }, 1)
-             }
+             },
+           dot = function(idx) {
+             vapply(1:nrow(idx), 
+                    function(k) {
+                      -crossprod(A[, idx[k,1]], A[, idx[k, 2]])
+                    }, 1)
+             },
   )
   filter_fun =  function(v, t) v <= t
 
@@ -152,7 +159,7 @@ tdist = function(A, t, p=10,
   while(iter <= max_iter) {
     ans = two_seven(A, L, t, filter, normlim=nlim(t), 
                     full_dist_fun=full_dist_fun, filter_fun=filter_fun, 
-                    dry_run=dry_run, group)
+                    dry_run=dry_run, group=group)
     if(dry_run) {
       return(list(restart=L, longest_run=ans$longest_run, tot=ans$tot, t=t, 
                   svd_time=t1))

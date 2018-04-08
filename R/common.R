@@ -42,10 +42,11 @@ longrun = function(v, limit, group=NULL)
 #' a list with ell and tot is returned
 #' @importFrom foreach foreach %dopar% %do%
 #' @keywords internal
-two_seven = function(A, L, t, filter=c("distributed", "local"), normlim=2 * (1 - t),
-                     full_dist_fun=function(idx) vapply(1:nrow(idx), function(k) cor(A[, idx[k,1]], A[, idx[k, 2]]), 1),
-                     filter_fun=function(v, t) v >= t, dry_run=FALSE, anti=FALSE, group=NULL)
-{
+two_seven = function(A, L, t, filter=c("distributed", "local"), 
+  normlim=2 * (1 - t),
+  full_dist_fun=function(idx) vapply(1:nrow(idx), function(k) cor(A[, idx[k,1]], A[, idx[k, 2]]), 1),
+  filter_fun=function(v, t) v >= t, dry_run=FALSE, anti=FALSE, group=NULL) {
+
   filter = match.arg(filter)
   nx = ncol(A)
   if(!is.null(group)) nx = sum(group == group[1])  # number of columns in 1st array

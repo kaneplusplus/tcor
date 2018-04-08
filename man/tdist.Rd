@@ -5,8 +5,9 @@
 \title{Compute thresholded distances between rows or columns of a matrix}
 \usage{
 tdist(A, t, p = 10, filter = c("distributed", "local"),
-  method = c("euclidean", "manhattan", "maximum"), rank = FALSE,
-  dry_run = FALSE, max_iter = 4, columns = FALSE, restart, ...)
+  method = c("euclidean", "manhattan", "maximum", "dot"), rank = FALSE,
+  dry_run = FALSE, max_iter = 4, columns = FALSE, group = NULL, restart,
+  ...)
 }
 \arguments{
 \item{A}{an m by n real-valued dense or sparse matrix}
@@ -36,6 +37,10 @@ number sets the maximum numer of such iterations}
 
 \item{columns}{set to \code{TRUE} to compute distances between matrix columns instead
 of rows, saving the expense of a matrix transpose (which can be significant if \code{A} is large)}
+
+\item{group}{either \code{NULL} for no grouping, or a vector of length 
+\code{ncol(A)} consisting of \code{-1, 1} values indicating group 
+membership of the columns.}
 
 \item{restart}{either output from a previous run of \code{tdist} with \code{dry_run=TRUE},
 or direct output from from \code{\link{irlba}} used to restart the \code{irlba}
@@ -95,4 +100,3 @@ print(sort(d)[1:10])
 \seealso{
 \code{\link{dist}}, \code{\link{tcor}}
 }
-

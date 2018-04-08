@@ -22,4 +22,3 @@ linear time longest run search: find the longest run of values in the
 ordered vector within the specified limit
 }
 \keyword{internal}
-

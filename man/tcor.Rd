@@ -131,4 +131,3 @@ x <- tcor(A, t=0.98)  # Should now run faster on a multicore machine
 \seealso{
 \code{\link{cor}}, \code{\link{tdist}}
 }
-
